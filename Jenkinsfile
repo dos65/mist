@@ -32,7 +32,10 @@ node {
           )
         }
       }
-
+      stage('Cleanup') {
+        echo "Cleanup volumes"
+        sh "/bin/sh bin/cleanup.sh"
+      }
     }
     catch (err) {
       currentBuild.result = "FAILURE"
@@ -70,9 +73,6 @@ def test_mist(sparkVersion) {
     mosquitto.stop()
     mistVolume.stop()
     hdfs.stop()
-
-    def unusedVolumes = sh(script: "docker volume ls -qf dangling=true", returnStdout: true)
-    sh "docker volume rm ${unusedVolumes}"
 }
 
 def build_image(sparkVersion) {
