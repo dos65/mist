@@ -52,6 +52,8 @@ def test_mist(sparkVersion) {
     echo 'prepare for Mist with Spark version - ' + sparkVersion
     def mosquitto = docker.image('ansi/mosquitto:latest').run()
     def hdfs = docker.image('hydrosphere/hdfs:experimental').run("-e SPARK_VERSION=${sparkVersion}", "start")
+    echo 'Waiting HDFS'
+    sleep 480
     echo 'Testing Mist with Spark version: ' + sparkVersion
     def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
       sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
@@ -61,6 +63,10 @@ def test_mist(sparkVersion) {
     def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true).trim()
     echo "Build flag: ${checkExitCode}"
     if ( checkExitCode == "1" ) {
+          echo 'remove containers'
+          mosquitto.stop()
+          mistVolume.stop()
+          hdfs.stop()
           error("Tests failed")
     }
     sh "docker rm -f ${mistId}"
